@@ -1,0 +1,38 @@
+﻿Host:
+	- Music File
+		- byte array of Music file: byte[9,528,704]
+		- Bitrate: 320 kb/s
+		- time: t;
+		- index: t * bitrate; kb / s * s = kb /1000 = bytes
+			-> index Packet at time t: 
+
+			[====]==========================[====]====================================================================
+			|	 |							|    |
+		Index    |		  i: 30*320/1000;t=30    |
+		Packet Len						 len = 4s;
+			Viewing Window:	
+
+Client:
+	MusicRequestor wants packets, creates MusicFuture on data context state change
+	MusicFuture is just a placeholder for the actual packet itself, in form of Music
+		- Release Music to the client upon completed download
+	Client will add the music to the playing buffer
+
+	Each time: a packet is run to completion for the length of the packet
+		-> when a packet is complete, dequeues Music Packet from music_queue
+			-> if empty: all breaks loose and they dont want to use our service anymore
+			-> otherwise: cool play the next packet
+	BUT WAIT, THERES MORE.
+	Propagation delay sucks.
+		-> lets account for that:
+			-> send system time within the packet, send the packet over, and calculate the propagation delay
+			utilizing the difference from current time to sent time.
+				->now, where might this fuck up
+					->basically, a lot places.
+					->most namely, system times aren't always required to be super accurate
+					->better hope your times are in sync
+					->The time from starting a new frame and playing to the speakers has some lag time, this means that the computers will be in a perpetual chase for each other
+						->This can be fixed by introducing a producer/consumer situation. The server pushes to the client, the requests are pushed to a queue, and then sorted by
+						elapsed time. The timestamps are used to fully reconstruct the sound file. The client will listen to that file as it is built, and should load parts of the songs
+						dynamically from the host with a set lag time for buffer control.
+
